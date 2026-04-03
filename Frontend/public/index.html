@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Igor's HTTP Client</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 16px; }
+    .topbar { display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
+    .layout { display:grid; grid-template-columns: 320px 1fr; gap: 12px; margin-top: 12px; }
+    .panel { border: 1px solid #ddd; border-radius: 8px; padding: 10px; }
+    .list { height: 70vh; overflow:auto; border:1px solid #eee; border-radius: 6px; }
+    .item { padding: 10px; border-bottom: 1px solid #f2f2f2; cursor:pointer; }
+    .item:hover { background: #fafafa; }
+    .item.active { background: #eef3ff; }
+    textarea { width: 100%; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+    #specEditor { height: 34vh; }
+    #response { height: 30vh; }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
+    .muted { color:#555; font-size: 12px; }
+    button { padding: 8px 12px; }
+    .pill { padding: 4px 8px; border:1px solid #eee; border-radius: 999px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <input type="file" id="fileInput" accept="application/json,.json" />
+    <button id="exportBtn" type="button">Export JSON</button>
+    <button id="clearBtn" type="button">Clear Local</button>
+    <span class="pill" id="count">0 saved</span>
+    <span class="muted" id="status"></span>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <h3>Saved Requests</h3>
+      <div class="list" id="list"></div>
+    </div>
+
+    <div class="panel">
+      <div class="row">
+        <h3 style="margin:0;">Selected Request</h3>
+        <button id="sendBtn" type="button">Send</button>
+      </div>
+
+      <h4>Request Spec (editable JSON)</h4>
+      <textarea id="specEditor" spellcheck="false"></textarea>
+
+      <h4>Response</h4>
+      <textarea id="response" readonly spellcheck="false"></textarea>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
