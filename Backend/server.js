@@ -2,6 +2,17 @@ import express from "express"; // Import Express framework for building the API 
 import path from "path"; // Import path utilities for cross-platform file path handling.
 import { fileURLToPath } from "url"; // Convert module file URL to a normal filesystem path.
 import { setGlobalDispatcher, ProxyAgent } from "undici"; // Import Undici proxy support for outbound HTTP requests.
+import rateLimit from "express-rate-limit";
+
+const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,        // 1 min
+    limit: 20,                 // 20 requests for min
+    standardHeaders: "draft-8", // modern RateLimit header
+    legacyHeaders: false,      // disable X-RateLimit-*
+    message: {
+      error: "Too many requests. Slow down."
+    }
+  });
 
 const proxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY; // Read proxy from environment variables.
 if (proxy) { // If a proxy is configured...
@@ -15,8 +26,8 @@ const __dirname = path.dirname(__filename); // Resolve current directory path in
 const app = express(); // Create Express application instance.
 app.use(express.json({ limit: "2mb" })); // Enable JSON body parsing with a 2 MB request body limit.
 
-// Point to: IGORSHTTPCLIENT/01_Frontend/public
-const frontendPublicDir = path.resolve(__dirname, "..", "01_Frontend", "public"); // Build absolute path to frontend static assets.
+// Point to: IGORSHTTPCLIENT/Frontend/public
+const frontendPublicDir = path.resolve(__dirname, "..", "Frontend", "public"); // Build absolute path to frontend static assets.
 app.use(express.static(frontendPublicDir)); // Serve static frontend files from the public folder.
 
 function buildUrl(url, queryParams = []) {
@@ -45,19 +56,55 @@ function headersArrayToObject(headersArr = []) {
 const ALLOW_ANY = true; // Allow calling any host when true.
 // const ALLOWED_HOSTS = new Set(["api.example.com"]);
 
-function assertAllowed(urlStr) {
-    const u = new URL(urlStr); // Parse target URL to inspect its hostname.
-    if (ALLOW_ANY) return; // Skip restriction check when all hosts are allowed.
-    // if (!ALLOWED_HOSTS.has(u.hostname)) throw new Error(`Host not allowed: ${u.hostname}`);
+async function assertAllowed(urlStr) {
+    const u = new URL(urlStr);
+
+    if (!["http:", "https:"].includes(u.protocol)) {
+        throw new Error("Only http/https protocols are allowed");
+    }
+
+    if (await isPrivateHost(u.hostname)) {
+        throw new Error("Access to private hosts is blocked");
+    }
 }
 
-app.post("/api/send", async (req, res) => {
+// Security improvement 1
+import dns from "dns/promises";
+import net from "net";
+
+const PRIVATE_RANGES = [
+    /^127\./,
+    /^10\./,
+    /^192\.168\./,
+    /^172\.(1[6-9]|2\d|3[0-1])\./,
+    /^169\.254\./,
+    /^localhost$/i
+];
+
+async function isPrivateHost(hostname) {
+    if (PRIVATE_RANGES.some(r => r.test(hostname))) return true;
+
+    if (net.isIP(hostname)) {
+        return PRIVATE_RANGES.some(r => r.test(hostname));
+    }
+
+    try {
+        const records = await dns.lookup(hostname, { all: true });
+        return records.some(r =>
+            PRIVATE_RANGES.some(rx => rx.test(r.address))
+        );
+    } catch {
+        return true; // fail closed
+    }
+}
+
+app.post("/api/send", apiLimiter, async (req, res) => {
     try {
         const spec = req.body; // Read request specification from incoming JSON body.
         if (!spec?.url) return res.status(400).json({ error: "Missing url" }); // Validate required URL field.
 
         const finalUrl = buildUrl(spec.url, spec.query_parameters); // Build final URL with query parameters.
-        assertAllowed(finalUrl); // Enforce optional outbound host restrictions.
+        await assertAllowed(finalUrl); // Enforce optional outbound host restrictions.
 
         const method = String(spec.method || "GET").toUpperCase(); // Resolve HTTP method with GET fallback.
         const headers = headersArrayToObject(spec.headers); // Convert header rows to fetch-compatible headers object.
@@ -80,7 +127,17 @@ app.post("/api/send", async (req, res) => {
         }
 
         const started = Date.now(); // Capture request start timestamp.
-        const r = await fetch(finalUrl, { method, headers, body }); // Execute outbound HTTP request.
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+
+        const r = await fetch(finalUrl, {
+            method,
+            headers,
+            body,
+            signal: controller.signal
+        });
+
+        clearTimeout(timeout); // Execute outbound HTTP request.
         const durationMs = Date.now() - started; // Compute request duration in milliseconds.
 
         const text = await r.text(); // Read response body as text first.
@@ -120,3 +177,5 @@ app.get(/^(?!\/api).*/, (req, res) => {
 });
 
 app.listen(3000, () => console.log("Open http://localhost:3000")); // Start backend server on port 3000.
+
+// Security improvements
