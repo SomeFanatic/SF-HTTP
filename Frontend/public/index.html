@@ -4,6 +4,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- CodeMirror core -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+
+  <!-- Dark theme (ladí s tvojou appkou) -->
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+
+  <!-- JSON mode -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="mask-icon" href="/favicon.svg" color="#2563eb">
   <link rel="stylesheet" href="./styles.css" />
@@ -74,7 +85,7 @@
         <div class="panel">
           <div class="row">
             <h3 style="margin:0;">Selected Request</h3>
-            <button id="sendBtn" class="send">
+            <button id="sendBtn" class="send" type="button">
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M22 2L11 13" />
                 <path d="M22 2L15 22L11 13L2 9L22 2Z" />

@@ -14,6 +14,34 @@ const closeTemplate = document.getElementById("closeTemplate");
 const templateViewer = document.getElementById("templateViewer");
 const helpModal = document.getElementById("helpModal");
 
+// ---- CodeMirror: Request editor ----
+const specCodeMirror = CodeMirror.fromTextArea(
+  document.getElementById("specEditor"),
+  {
+    mode: { name: "javascript", json: true },
+    theme: "material-darker",
+    lineNumbers: true,
+    tabSize: 2,
+    indentWithTabs: false,
+    viewportMargin: Infinity // nech sa nerozbije výška
+  }
+);
+
+// ---- CodeMirror: Response viewer ----
+const responseCodeMirror = CodeMirror.fromTextArea(
+  document.getElementById("response"),
+  {
+    mode: { name: "javascript", json: true },
+    theme: "material-darker",
+    lineNumbers: true,
+    readOnly: true,
+    viewportMargin: Infinity
+  }
+);
+
+
+
+
 const REQUEST_TEMPLATE = {
   name: "Example request",
   url: "https://api.example.com/users",
@@ -27,6 +55,22 @@ const REQUEST_TEMPLATE = {
   body: null
 };
 
+function isValidJSON(str) {
+  try {
+    JSON.parse(str);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function updateSendEnabled() {
+  const text = specCodeMirror.getValue();
+  const hasText = text.trim().length > 0;
+  const valid = hasText && isValidJSON(text);
+  sendBtn.disabled = isSending || !valid;
+}
+
 // --- Send button UI parts (spinner + label) ---
 const sendLabel = sendBtn.querySelector(".label");
 const sendSpinner = sendBtn.querySelector(".spinner");
@@ -39,22 +83,6 @@ function setSendLoading(loading) {
   if (sendLabel) sendLabel.textContent = loading ? "Sending…" : "Send";
   // disabled stav riešime centrálne v updateSendEnabled()
   updateSendEnabled();
-}
-
-function isValidJSON(str) {
-  try {
-    JSON.parse(str);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function updateSendEnabled() {
-  const hasText = specEditor.value.trim().length > 0;
-  const valid = hasText && isValidJSON(specEditor.value);
-  // Disable ak posielame alebo JSON je nevalidný
-  sendBtn.disabled = isSending || !valid;
 }
 
 let savedRequests = loadSavedRequests(); // Load previously saved requests from local storage on startup.
@@ -118,8 +146,8 @@ clearBtn.addEventListener("click", () => { // Handle clearing all saved requests
 
   listElement.innerHTML = ""; // Clear request list UI.
   countElement.textContent = "0 saved"; // Reset request count UI.
-  specEditor.value = ""; // Clear request editor content.
-  responseElement.value = ""; // Clear response output content.
+  specCodeMirror.setValue(""); // Clear request editor content.
+  responseCodeMirror.setValue(""); // Clear response output content.
   statusElement.textContent = "Cleared."; // Inform user that data was cleared.
   updateSendEnabled();
 
@@ -151,39 +179,32 @@ function setSelectedRequest(requestIndex) {
   const selectedRequest = savedRequests[requestIndex]; // Read selected request object by index.
   if (!selectedRequest) return; // Stop if index is invalid or no request exists.
 
-  specEditor.value = JSON.stringify(selectedRequest, null, 2); // Populate editor with selected request JSON.
-  responseElement.value = ""; // Clear old response output when changing selection.
+  specCodeMirror.setValue(
+    JSON.stringify(selectedRequest, null, 2)
+  ); // Populate editor with selected request JSON.
+  responseCodeMirror.setValue(""); // Clear old response output when changing selection.
   statusElement.textContent = ""; // Clear status line when changing selection.
   updateSendEnabled();
 }
 
 // Send request
-sendBtn.addEventListener("click", async () => {
-  responseElement.value = "";
-  statusElement.textContent = "Sending...";
+sendBtn.addEventListener("click", async (e) => {
+  e.preventDefault();
 
-  // Ak je disabled, nič nerob (bezpečnostný guard)
-  if (sendBtn.disabled) return;
+  // okamžitá UX odozva
+  statusElement.textContent = "Sending...";
+  responseCodeMirror.setValue("");
 
   let requestSpec;
   try {
-    requestSpec = JSON.parse(specEditor.value);
-  } catch (parseError) {
+    requestSpec = JSON.parse(specCodeMirror.getValue());
+  } catch (err) {
     statusElement.textContent = "Invalid JSON in editor.";
-    responseElement.value = String(parseError);
-    updateSendEnabled();
+    responseCodeMirror.setValue(String(err));
     return;
   }
 
-  // nastav loading (spinner + text + disable)
   setSendLoading(true);
-
-  // (Optional) Update the stored version...
-  if (selectedRequestIndex >= 0) {
-    savedRequests[selectedRequestIndex] = normalizeSpec(requestSpec);
-    saveRequests(savedRequests);
-    renderRequestList();
-  }
 
   try {
     const apiResponse = await fetch("/api/send", {
@@ -197,15 +218,17 @@ sendBtn.addEventListener("click", async () => {
     if (responsePayload.error) {
       statusElement.textContent = `Error: ${responsePayload.error}`;
     } else {
-      statusElement.textContent = `${responsePayload.status} ${responsePayload.statusText} • ${responsePayload.durationMs}ms`;
+      statusElement.textContent =
+        `${responsePayload.status} ${responsePayload.statusText} • ${responsePayload.durationMs}ms`;
     }
 
-    responseElement.value = JSON.stringify(responsePayload, null, 2);
-  } catch (requestError) {
+    responseCodeMirror.setValue(
+      JSON.stringify(responsePayload, null, 2)
+    );
+  } catch (err) {
     statusElement.textContent = "Request failed.";
-    responseElement.value = String(requestError);
+    responseCodeMirror.setValue(String(err));
   } finally {
-    // vypni loading vždy
     setSendLoading(false);
   }
 });
@@ -259,7 +282,7 @@ function toggleTheme() {
 
 
 // React to editor changes
-specEditor.addEventListener("input", () => {
+specCodeMirror.on("change", () => {
   updateSendEnabled();
 });
 
@@ -298,7 +321,7 @@ const copyResponseBtn = document.getElementById("copyResponseBtn");
 const copyFeedback = document.getElementById("copyFeedback");
 
 copyResponseBtn.addEventListener("click", async () => {
-  const text = responseElement.value;
+  const text = responseCodeMirror.getValue();
 
   if (!text) return;
 
@@ -315,5 +338,3 @@ copyResponseBtn.addEventListener("click", async () => {
     console.error("Copy failed", err);
   }
 });
-
-

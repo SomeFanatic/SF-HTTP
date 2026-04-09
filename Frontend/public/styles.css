@@ -316,7 +316,7 @@ h4 {
 =============================== */
 .response-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 10px;
   margin-bottom: 6px; /* menšia medzera medzi headerom a textarea */
 }
@@ -351,6 +351,7 @@ h4 {
 /* tlačidlo presuň doprava */
 #copyResponseBtn {
   margin-left: auto;
+  margin-top: 6px;
 }
 
 @keyframes fadeInOut {
@@ -381,4 +382,29 @@ h4 {
 
 .footer a:hover {
   text-decoration: underline;
+}
+
+/* ===============================
+     CODE EDITOR
+=============================== */
+/* CodeMirror size & look */
+.CodeMirror {
+  height: 100%;
+  font-family: var(--mono);
+  font-size: 13px;
+  border-radius: 6px;
+  background: var(--input-bg);
+}
+
+/* nech sedí s panelom */
+.panel .CodeMirror {
+  border: 1px solid var(--panel-border);
+}
+
+#specEditor + .CodeMirror {
+  height: 30vh;
+}
+
+#response + .CodeMirror {
+  height: 30vh;
 }
