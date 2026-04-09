@@ -1,0 +1,384 @@
+/* ===============================
+   THEME VARIABLES
+=============================== */
+:root {
+  --bg: #0f1115;
+  --panel: #171a21;
+  --panel-border: #2a2f3a;
+  --text: #e6e6eb;
+  --muted: #9aa0aa;
+  --accent: #4f7cff;
+  --accent-hover: #7096ff;
+
+  --btn-bg: #1f2430;
+  --btn-hover: #2a407a;
+
+  --green: #22c55e;
+
+  --item-hover: #202532;
+  --item-active: #2b3660;
+
+  --input-bg: #0b0d11;
+  --radius: 8px;
+
+  --mono: ui-monospace, Menlo, Monaco, Consolas, monospace;
+  --sans: system-ui, Arial, sans-serif;
+}
+
+[data-theme="light"] {
+  --bg: #e5e7eb;
+  --panel: #ffffff;
+  --panel-border: #cbd5e1;
+  --text: #111827;
+  --muted: #4b5563;
+
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+
+  --btn-bg: #d1d5db;
+  --btn-hover: #bfdbfe;
+
+  --item-hover: #e5e7eb;
+  --item-active: #dbeafe;
+
+  --input-bg: #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0px;
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.content {
+  flex: 1;
+  overflow: auto;
+}
+
+.theme-toggle {
+  margin-left: auto;
+}
+
+/* ===============================
+     TOP BAR
+=============================== */
+.topbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 12px 16px;
+}
+
+/* ===============================
+     BOTTOM BAR
+=============================== */
+.bottombar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 5px 10px;
+}
+
+/* ===============================
+     BUTTONS
+=============================== */
+button,
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--btn-bg);
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+button:hover,
+.btn:hover:not(:disabled) {
+  background: var(--btn-hover);
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* SEND BUTTON */
+button.send {
+  margin-left: auto;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  background: transparent;
+}
+
+button.send:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+
+.icon {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ===============================
+     FILE INPUT
+=============================== */
+input[type="file"] {
+  display: none;
+}
+
+/* ===============================
+     LAYOUT
+=============================== */
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 12px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+
+/* ===============================
+     LIST
+=============================== */
+.list {
+  height: 70vh;
+  overflow: auto;
+  background: var(--input-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+}
+
+.item {
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.item:hover {
+  background: var(--item-hover);
+}
+
+.item.active {
+  background: var(--item-active);
+}
+
+/* ===============================
+     TEXTAREAS
+=============================== */
+textarea {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+#specEditor {
+  height: 34vh;
+}
+
+#response {
+  height: 30vh;
+}
+
+/* ===============================
+     HEADINGS SPACING
+=============================== */
+h4 {
+  margin-top: 16px;
+  margin-bottom: 6px;
+}
+
+/* ===============================
+     META
+=============================== */
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pill {
+  padding: 4px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+/* ===============================
+     LOADING SPINNER
+=============================== */
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, .3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===============================
+     MODAL
+=============================== */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-content {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  max-width: 520px;
+  width: 100%;
+  padding: 16px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-body {
+  margin-top: 12px;
+  color: var(--text);
+}
+
+.modal[hidden] {
+  display: none !important;
+}
+#templateViewer {
+  height: 260px;
+  margin-top: 8px;
+  font-family: var(--mono);
+}
+
+/* ===============================
+   RESPONSE HEADER + COPY
+=============================== */
+.response-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px; /* menšia medzera medzi headerom a textarea */
+}
+
+/* menej dominantné tlačidlo */
+.btn-ghost {
+  background: transparent;
+  border-color: var(--panel-border);
+}
+
+.btn-ghost:hover {
+  background: var(--btn-hover);
+  border-color: var(--accent);
+}
+
+/* potvrdenie kopírovania */
+.copy-feedback {
+  font-size: 12px;
+  color: var(--accent);
+  user-select: none;
+  animation: fadeInOut 1.4s ease forwards;
+}
+
+
+/* nadpis nech je normálne vľavo */
+.response-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* tlačidlo presuň doprava */
+#copyResponseBtn {
+  margin-left: auto;
+}
+
+@keyframes fadeInOut {
+  0%   { opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ===============================
+     FOOTER
+=============================== */
+
+
+.footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--panel-border);
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+
+.footer a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}

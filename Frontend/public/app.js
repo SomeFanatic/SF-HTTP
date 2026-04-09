@@ -1,21 +1,68 @@
 const STORAGE_KEY = "igorsHttpClient.savedRequests.v1"; // Local storage key used to persist saved request definitions.
-
 const fileInput = document.getElementById("fileInput"); // File input used for importing request JSON files.
 const exportBtn = document.getElementById("exportBtn"); // Button used to export saved requests as JSON.
 const clearBtn = document.getElementById("clearBtn"); // Button used to clear all locally stored requests.
+const sendBtn = document.getElementById("sendBtn"); // Button used to send the current request spec to backend.
+const templateBtn = document.getElementById("templateBtn");
+const statusElement = document.getElementById("status"); // Status line for user feedback and errors.
 const listElement = document.getElementById("list"); // Container that displays the list of saved requests.
 const countElement = document.getElementById("count"); // Element that shows number of saved requests.
-
 const specEditor = document.getElementById("specEditor"); // Text area/editor containing the selected request specification JSON.
-const sendBtn = document.getElementById("sendBtn"); // Button used to send the current request spec to backend.
-const statusElement = document.getElementById("status"); // Status line for user feedback and errors.
 const responseElement = document.getElementById("response"); // Text area showing backend response payload.
+const templateModal = document.getElementById("templateModal");
+const closeTemplate = document.getElementById("closeTemplate");
+const templateViewer = document.getElementById("templateViewer");
+const helpModal = document.getElementById("helpModal");
+
+const REQUEST_TEMPLATE = {
+  name: "Example request",
+  url: "https://api.example.com/users",
+  method: "GET",
+  headers: [
+    { key: "Authorization", value: "Bearer YOUR_TOKEN" }
+  ],
+  query_parameters: [
+    { key: "limit", value: "10" }
+  ],
+  body: null
+};
+
+// --- Send button UI parts (spinner + label) ---
+const sendLabel = sendBtn.querySelector(".label");
+const sendSpinner = sendBtn.querySelector(".spinner");
+
+let isSending = false;
+
+function setSendLoading(loading) {
+  isSending = loading;
+  if (sendSpinner) sendSpinner.hidden = !loading;
+  if (sendLabel) sendLabel.textContent = loading ? "Sending…" : "Send";
+  // disabled stav riešime centrálne v updateSendEnabled()
+  updateSendEnabled();
+}
+
+function isValidJSON(str) {
+  try {
+    JSON.parse(str);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function updateSendEnabled() {
+  const hasText = specEditor.value.trim().length > 0;
+  const valid = hasText && isValidJSON(specEditor.value);
+  // Disable ak posielame alebo JSON je nevalidný
+  sendBtn.disabled = isSending || !valid;
+}
 
 let savedRequests = loadSavedRequests(); // Load previously saved requests from local storage on startup.
 let selectedRequestIndex = savedRequests.length ? 0 : -1; // Select first request if present, otherwise mark no selection.
 
 renderRequestList(); // Render saved request list immediately after load.
 if (selectedRequestIndex >= 0) setSelectedRequest(selectedRequestIndex); // Populate editor with initially selected request.
+updateSendEnabled();
 
 // Upload / import
 fileInput.addEventListener("change", async (event) => { // Handle user selecting a file to import.
@@ -60,6 +107,7 @@ exportBtn.addEventListener("click", () => { // Handle exporting all saved reques
   URL.revokeObjectURL(exportUrl); // Release temporary URL to avoid memory leaks.
 });
 
+
 // Clear local
 clearBtn.addEventListener("click", () => { // Handle clearing all saved requests.
   if (!confirm("Clear locally saved requests?")) return; // Ask user confirmation before destructive action.
@@ -73,6 +121,7 @@ clearBtn.addEventListener("click", () => { // Handle clearing all saved requests
   specEditor.value = ""; // Clear request editor content.
   responseElement.value = ""; // Clear response output content.
   statusElement.textContent = "Cleared."; // Inform user that data was cleared.
+  updateSendEnabled();
 
   fileInput.value = ""; // Reset file input control.
 });
@@ -105,57 +154,68 @@ function setSelectedRequest(requestIndex) {
   specEditor.value = JSON.stringify(selectedRequest, null, 2); // Populate editor with selected request JSON.
   responseElement.value = ""; // Clear old response output when changing selection.
   statusElement.textContent = ""; // Clear status line when changing selection.
+  updateSendEnabled();
 }
 
 // Send request
-sendBtn.addEventListener("click", async () => { // Handle user clicking Send.
-  responseElement.value = ""; // Clear previous response output before sending.
-  statusElement.textContent = "Sending..."; // Show sending status in UI.
+sendBtn.addEventListener("click", async () => {
+  responseElement.value = "";
+  statusElement.textContent = "Sending...";
 
-  let requestSpec; // Hold parsed request spec from editor.
+  // Ak je disabled, nič nerob (bezpečnostný guard)
+  if (sendBtn.disabled) return;
+
+  let requestSpec;
   try {
-    requestSpec = JSON.parse(specEditor.value); // Parse editor JSON into request object.
+    requestSpec = JSON.parse(specEditor.value);
   } catch (parseError) {
-    statusElement.textContent = "Invalid JSON in editor."; // Report invalid JSON to user.
-    responseElement.value = String(parseError); // Show parse error details in response panel.
-    return; // Stop send flow when JSON is invalid.
+    statusElement.textContent = "Invalid JSON in editor.";
+    responseElement.value = String(parseError);
+    updateSendEnabled();
+    return;
   }
 
-  // (Optional) Update the stored version of the selected request with edits
-  // so clicking around doesn't lose changes.
-  if (selectedRequestIndex >= 0) { // Update saved request when an item is currently selected.
-    savedRequests[selectedRequestIndex] = normalizeSpec(requestSpec); // Normalize and store edited request.
-    saveRequests(savedRequests); // Persist edited request list.
-    renderRequestList(); // Refresh list in case name/method/url changed.
+  // nastav loading (spinner + text + disable)
+  setSendLoading(true);
+
+  // (Optional) Update the stored version...
+  if (selectedRequestIndex >= 0) {
+    savedRequests[selectedRequestIndex] = normalizeSpec(requestSpec);
+    saveRequests(savedRequests);
+    renderRequestList();
   }
 
   try {
-    const apiResponse = await fetch("/api/send", { // Send request spec to backend relay endpoint.
-      method: "POST", // Use POST because request spec is sent in body.
-      headers: { "Content-Type": "application/json" }, // Tell backend payload is JSON.
-      body: JSON.stringify(requestSpec) // Serialize request spec for transport.
+    const apiResponse = await fetch("/api/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestSpec)
     });
 
-    const responsePayload = await apiResponse.json(); // Parse backend JSON response.
+    const responsePayload = await apiResponse.json();
 
-    if (responsePayload.error) { // Handle backend-reported error message.
-      statusElement.textContent = `Error: ${responsePayload.error}`; // Show error in status line.
+    if (responsePayload.error) {
+      statusElement.textContent = `Error: ${responsePayload.error}`;
     } else {
-      statusElement.textContent = `${responsePayload.status} ${responsePayload.statusText} • ${responsePayload.durationMs}ms`; // Show HTTP status and duration.
+      statusElement.textContent = `${responsePayload.status} ${responsePayload.statusText} • ${responsePayload.durationMs}ms`;
     }
 
-    responseElement.value = JSON.stringify(responsePayload, null, 2); // Render full backend response in output panel.
+    responseElement.value = JSON.stringify(responsePayload, null, 2);
   } catch (requestError) {
-    statusElement.textContent = "Request failed."; // Show generic network/request failure.
-    responseElement.value = String(requestError); // Show thrown error details in output panel.
+    statusElement.textContent = "Request failed.";
+    responseElement.value = String(requestError);
+  } finally {
+    // vypni loading vždy
+    setSendLoading(false);
   }
 });
+
 
 // Helpers
 function normalizeSpec(requestSpec) {
   return {
     name: requestSpec?.name ?? "Unnamed Request", // Ensure request has a display name.
-    url: requestSpec?.url ?? "", // Ensure request has URL field.
+    url: requestSpec?.url ?? requestSpec?.endpoint ?? "", // Ensure request has URL field.
     method: (requestSpec?.method ?? "GET").toUpperCase(), // Ensure method exists and is uppercase.
     headers: Array.isArray(requestSpec?.headers) ? requestSpec.headers : [], // Ensure headers is always an array.
     query_parameters: Array.isArray(requestSpec?.query_parameters) ? requestSpec.query_parameters : [], // Ensure query parameters is always an array.
@@ -175,3 +235,85 @@ function loadSavedRequests() {
 function saveRequests(requests) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(requests)); // Persist request list to local storage.
 }
+
+// ===============================
+// UX LOGIC (Theme only)
+// ===============================
+function syncThemeButtonLabel() {
+  const btn = document.querySelector(".theme-toggle");
+  if (!btn) return;
+  btn.lastChild.textContent =
+    document.body.dataset.theme === "dark" ? " Dark" : " Light";
+}
+
+const savedTheme = localStorage.getItem("theme");
+document.body.dataset.theme = (savedTheme === "light" || savedTheme === "dark") ? savedTheme : "dark";
+syncThemeButtonLabel();
+
+function toggleTheme() {
+  const theme = document.body.dataset.theme === "dark" ? "light" : "dark";
+  document.body.dataset.theme = theme;
+  localStorage.setItem("theme", theme);
+  syncThemeButtonLabel();
+}
+
+
+// React to editor changes
+specEditor.addEventListener("input", () => {
+  updateSendEnabled();
+});
+
+// Open template modal
+templateBtn.addEventListener("click", () => {
+  templateViewer.value = JSON.stringify(REQUEST_TEMPLATE, null, 2);
+  templateModal.hidden = false;
+});
+
+// Close template modal
+closeTemplate.addEventListener("click", (e) => {
+  e.stopPropagation();
+  templateModal.hidden = true;
+});
+
+// Click outside to close
+templateModal.addEventListener("click", (e) => {
+  if (e.target === templateModal) {
+    templateModal.hidden = true;
+  }
+});
+
+document.getElementById("helpBtn").addEventListener("click", () => {
+  helpModal.hidden = false;
+});
+
+document.getElementById("closeHelp").addEventListener("click", () => {
+  helpModal.hidden = true;
+});
+
+helpModal.addEventListener("click", (e) => {
+  if (e.target === helpModal) helpModal.hidden = true;
+});
+
+const copyResponseBtn = document.getElementById("copyResponseBtn");
+const copyFeedback = document.getElementById("copyFeedback");
+
+copyResponseBtn.addEventListener("click", async () => {
+  const text = responseElement.value;
+
+  if (!text) return;
+
+  try {
+    await navigator.clipboard.writeText(text);
+
+    copyFeedback.hidden = false;
+
+    // znova skryť po animácii
+    setTimeout(() => {
+      copyFeedback.hidden = true;
+    }, 1400);
+  } catch (err) {
+    console.error("Copy failed", err);
+  }
+});
+
+

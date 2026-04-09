@@ -1,0 +1,37 @@
+[{
+    "name": "Example request1",
+    "url": "https://api.example.com/users",
+    "method": "GET",
+    "headers": [
+      {
+        "key": "Authorization",
+        "value": "Bearer YOUR_TOKEN"
+      }
+    ],
+    "query_parameters": [
+      {
+        "key": "limit",
+        "value": "10"
+      }
+    ],
+    "body": null
+  },{
+    "name": "Example request2",
+    "url": "https://api.example.com/users",
+    "method": "GET",
+    "headers": [
+      {
+        "key": "Authorization",
+        "value": "Bearer YOUR_TOKEN"
+      }
+    ],
+    "query_parameters": [
+      {
+        "key": "limit",
+        "value": "10"
+      }
+    ],
+    "body": null
+  }
+
+]

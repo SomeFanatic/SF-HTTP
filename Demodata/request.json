@@ -1,0 +1,16 @@
+[{
+    "name" : "postmen echo",
+    "url" : "postmen.echo.com",
+    "method" : "POST",
+    "headers" : [],
+    "query_parameters" : [],
+    "body" : {}
+},
+{
+    "name": "Unnamed Request",
+    "url": "https://rateit.sk",
+    "method": "POST",
+    "headers": [],
+    "query_parameters": [],
+    "body": null
+}]

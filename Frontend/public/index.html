@@ -1,56 +1,192 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="mask-icon" href="/favicon.svg" color="#2563eb">
+  <link rel="stylesheet" href="./styles.css" />
   <title>Igor's HTTP Client</title>
-  <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 16px; }
-    .topbar { display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
-    .layout { display:grid; grid-template-columns: 320px 1fr; gap: 12px; margin-top: 12px; }
-    .panel { border: 1px solid #ddd; border-radius: 8px; padding: 10px; }
-    .list { height: 70vh; overflow:auto; border:1px solid #eee; border-radius: 6px; }
-    .item { padding: 10px; border-bottom: 1px solid #f2f2f2; cursor:pointer; }
-    .item:hover { background: #fafafa; }
-    .item.active { background: #eef3ff; }
-    textarea { width: 100%; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
-    #specEditor { height: 34vh; }
-    #response { height: 30vh; }
-    .row { display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
-    .muted { color:#555; font-size: 12px; }
-    button { padding: 8px 12px; }
-    .pill { padding: 4px 8px; border:1px solid #eee; border-radius: 999px; font-size: 12px; }
-  </style>
 </head>
-<body>
-  <div class="topbar">
-    <input type="file" id="fileInput" accept="application/json,.json" />
-    <button id="exportBtn" type="button">Export JSON</button>
-    <button id="clearBtn" type="button">Clear Local</button>
-    <span class="pill" id="count">0 saved</span>
-    <span class="muted" id="status"></span>
-  </div>
 
-  <div class="layout">
-    <div class="panel">
-      <h3>Saved Requests</h3>
-      <div class="list" id="list"></div>
+<body data-theme="dark">
+  <div class="app">
+    <div class="topbar">
+      <label for="fileInput" class="btn">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3v12" />
+          <path d="M8 11l4 4 4-4" />
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        </svg>
+        Import JSON Requests
+      </label>
+      <input type="file" id="fileInput" accept="application/json,.json" />
+
+      <button id="exportBtn" class="btn">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3v12" />
+          <path d="M8 13l4 4 4-4" />
+          <path d="M5 21h14" />
+        </svg>
+        Export
+      </button>
+
+      <button id="templateBtn" class="btn">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21 7H7" />
+          <path d="M21 12H7" />
+          <path d="M21 17H7" />
+          <path d="M3 7h.01" />
+          <path d="M3 12h.01" />
+          <path d="M3 17h.01" />
+        </svg>
+        Template
+      </button>
+
+      <button id="clearBtn" class="btn">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 6h18" />
+          <path d="M8 6V4h8v2" />
+          <path d="M6 6l1 14h10l1-14" />
+        </svg>
+        Clear
+      </button>
+
+      <span class="pill" id="count">0 saved</span>
+      <span class="muted" id="status"></span>
+
+      <button class="theme-toggle btn" onclick="toggleTheme()">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+        </svg>
+        Dark
+      </button>
+
+    </div>
+    <div class="content">
+      <div class="layout">
+        <div class="panel">
+          <h3>Saved Requests</h3>
+          <div class="list" id="list"></div>
+        </div>
+
+        <div class="panel">
+          <div class="row">
+            <h3 style="margin:0;">Selected Request</h3>
+            <button id="sendBtn" class="send">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M22 2L11 13" />
+                <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+              </svg>
+              <span class="label">Send</span>
+              <span class="spinner" hidden></span>
+            </button>
+
+          </div>
+
+          <h4>Request</h4>
+          <textarea id="specEditor" spellcheck="false"></textarea>
+
+          <div class="response-header">
+            <h4 class="response-title">Response</h4>
+
+            <button id="copyResponseBtn" class="btn btn-ghost" type="button">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+              Copy Response
+            </button>
+
+            <span id="copyFeedback" class="copy-feedback" hidden>
+              ✓ Copied
+            </span>
+          </div>
+
+          <textarea id="response" readonly spellcheck="false"></textarea>
+
+        </div>
+      </div>
+    </div>
+    <div class="bottombar">
+      <button id="helpBtn" class="btn">
+        <svg class="icon" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M9.09 9A3 3 0 1 1 12 12v1" />
+          <path d="M12 17h.01" />
+        </svg>
+        Help
+      </button>
     </div>
 
-    <div class="panel">
-      <div class="row">
-        <h3 style="margin:0;">Selected Request</h3>
-        <button id="sendBtn" type="button">Send</button>
+    <footer class="footer">
+      <a href="https://github.com/SomeFanatic/SF-HTTP" target="_blank" rel="noopener">
+        View source on GitHub
+      </a>
+      ·
+      <a href="mailto:lamparen@gmail.com?subject=HTTP%20Client%20Feedback">
+        Send feedback
+      </a>
+    </footer>
+  </div>
+  <div id="templateModal" class="modal" hidden>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Request JSON Template</h3>
+        <button id="closeTemplate" class="btn">✕</button>
       </div>
 
-      <h4>Request Spec (editable JSON)</h4>
-      <textarea id="specEditor" spellcheck="false"></textarea>
+      <div class="modal-body">
+        <p class="muted">
+          Copy the JSON below and save it on your computer
+          as a <strong>.json</strong> file.
+          Then import it using the “Import JSON Requests” button.
+        </p>
 
-      <h4>Response</h4>
-      <textarea id="response" readonly spellcheck="false"></textarea>
+        <textarea id="templateViewer" readonly spellcheck="false"></textarea>
+      </div>
     </div>
   </div>
+  <div id="helpModal" class="modal" hidden>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>How to use Igor's HTTP Client</h3>
+        <button id="closeHelp" class="btn">✕</button>
+      </div>
 
+      <div class="modal-body">
+        <ol>
+          <li>Download the request template.</li>
+          <li>Edit the JSON file to match your API request.</li>
+          <li>Import the JSON using Import button.</li>
+          <li>Select request from the list.</li>
+          <li>Click <strong>Send</strong> to execute.</li>
+        </ol>
+
+        <p>
+          Requests are processed in-memory only.
+          No data is stored on the server.
+        </p>
+      </div>
+    </div>
+  </div>
+  <script>
+    function toggleTheme() {
+      const body = document.body;
+      const btn = document.querySelector(".theme-toggle");
+
+      if (body.dataset.theme === "dark") {
+        body.dataset.theme = "light";
+        btn.textContent = "☀️ Light";
+      } else {
+        body.dataset.theme = "dark";
+        btn.textContent = "Dark";
+      }
+    }
+  </script>
   <script src="./app.js"></script>
+
 </body>
+
 </html>
