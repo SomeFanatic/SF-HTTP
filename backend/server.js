@@ -4,6 +4,32 @@ import path from "path"; // Import path utilities for cross-platform file path h
 import { fileURLToPath } from "url"; // Convert module file URL to a normal filesystem path.
 import { setGlobalDispatcher, ProxyAgent } from "undici"; // Import Undici proxy support for outbound HTTP requests.
 import rateLimit from "express-rate-limit";
+// Security improvement 1
+import dns from "dns/promises";
+import net from "net";
+
+// =========================
+// SSRF protection constants
+// =========================
+const PRIVATE_RANGES = [
+    /^127\./,                         // 127.0.0.0/8 (localhost)
+    /^10\./,                          // 10.0.0.0/8
+    /^192\.168\./,                    // 192.168.0.0/16
+    /^172\.(1[6-9]|2\d|3[0-1])\./,    // 172.16.0.0 – 172.31.0.0
+    /^169\.254\./,                    // link-local
+    /^localhost$/i                    // literal localhost
+  ];
+  
+  const PRIVATE_V6 = [
+    /^::1$/i,                         // IPv6 localhost
+    /^fe80:/i,                        // IPv6 link-local
+    /^fc/i,                           // IPv6 unique local
+    /^fd/i,
+    /^::ffff:127\./i,                 // IPv4-mapped IPv6
+    /^::ffff:10\./i,
+    /^::ffff:192\.168\./i,
+    /^::ffff:172\.(1[6-9]|2\d|3[0-1])\./i
+  ];
 
 const apiLimiter = rateLimit({
     windowMs: 60 * 1000,        // 1 min
@@ -68,21 +94,6 @@ async function assertAllowed(urlStr) {
         throw new Error("Access to private hosts is blocked");
     }
 }
-
-// Security improvement 1
-import dns from "dns/promises";
-import net from "net";
-
-const PRIVATE_V6 = [
-    /^::1$/i,
-    /^fe80:/i,
-    /^fc/i,
-    /^fd/i,
-    /^::ffff:127\./i,
-    /^::ffff:10\./i,
-    /^::ffff:192\.168\./i,
-    /^::ffff:172\.(1[6-9]|2\d|3[0-1])\./i
-  ];
   
   async function isPrivateHost(hostname) {
     if (PRIVATE_RANGES.some(r => r.test(hostname))) return true;
