@@ -25,6 +25,32 @@
   --sans: system-ui, Arial, sans-serif;
 }
 
+
+/* Text selection – global */
+::selection {
+  background: #2563eb !important; /* modrá (Tailwind blue-600) */
+  color: #ffffff !important;
+}
+
+/* Pre Firefox */
+::-moz-selection {
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+/* CodeMirror selection */
+.cm-s-material-darker .CodeMirror-selected {
+  background: rgba(37, 99, 235, 0.5) !important;
+}
+
+.cm-s-material-darker .CodeMirror-line::selection,
+.cm-s-material-darker .CodeMirror-line > span::selection,
+.cm-s-material-darker .CodeMirror-line > span > span::selection {
+  background: rgba(37, 99, 235, 0.5);
+}
+
+
+
 [data-theme="light"] {
   --bg: #e5e7eb;
   --panel: #ffffff;
