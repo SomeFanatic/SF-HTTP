@@ -4,9 +4,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+
 # Environment variables
 .env
-.env.*
+backend/.env
+
+# Logs
+npm-debug.log*
 
 # OS / Editor
 .DS_Store
@@ -17,3 +21,7 @@ yarn-error.log*
 dist/
 build/
 .cache/
+
+# Folders
+demodata/
+ai-context/

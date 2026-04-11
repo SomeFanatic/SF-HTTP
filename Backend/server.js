@@ -1,4 +1,5 @@
 import express from "express"; // Import Express framework for building the API server.
+import "dotenv/config";
 import path from "path"; // Import path utilities for cross-platform file path handling.
 import { fileURLToPath } from "url"; // Convert module file URL to a normal filesystem path.
 import { setGlobalDispatcher, ProxyAgent } from "undici"; // Import Undici proxy support for outbound HTTP requests.
@@ -27,7 +28,7 @@ const app = express(); // Create Express application instance.
 app.use(express.json({ limit: "2mb" })); // Enable JSON body parsing with a 2 MB request body limit.
 
 // Point to: IGORSHTTPCLIENT/Frontend/public
-const frontendPublicDir = path.resolve(__dirname, "..", "Frontend", "public"); // Build absolute path to frontend static assets.
+const frontendPublicDir = path.resolve(__dirname, "..", "frontend", "public"); // Build absolute path to frontend static assets.
 app.use(express.static(frontendPublicDir)); // Serve static frontend files from the public folder.
 
 function buildUrl(url, queryParams = []) {
@@ -72,31 +73,37 @@ async function assertAllowed(urlStr) {
 import dns from "dns/promises";
 import net from "net";
 
-const PRIVATE_RANGES = [
-    /^127\./,
-    /^10\./,
-    /^192\.168\./,
-    /^172\.(1[6-9]|2\d|3[0-1])\./,
-    /^169\.254\./,
-    /^localhost$/i
-];
-
-async function isPrivateHost(hostname) {
+const PRIVATE_V6 = [
+    /^::1$/i,
+    /^fe80:/i,
+    /^fc/i,
+    /^fd/i,
+    /^::ffff:127\./i,
+    /^::ffff:10\./i,
+    /^::ffff:192\.168\./i,
+    /^::ffff:172\.(1[6-9]|2\d|3[0-1])\./i
+  ];
+  
+  async function isPrivateHost(hostname) {
     if (PRIVATE_RANGES.some(r => r.test(hostname))) return true;
-
+    if (PRIVATE_V6.some(r => r.test(hostname))) return true;
+  
     if (net.isIP(hostname)) {
-        return PRIVATE_RANGES.some(r => r.test(hostname));
+      if (PRIVATE_RANGES.some(r => r.test(hostname))) return true;
+      if (PRIVATE_V6.some(r => r.test(hostname))) return true;
+      return false;
     }
-
+  
     try {
-        const records = await dns.lookup(hostname, { all: true });
-        return records.some(r =>
-            PRIVATE_RANGES.some(rx => rx.test(r.address))
-        );
+      const records = await dns.lookup(hostname, { all: true });
+      return records.some(r =>
+        PRIVATE_RANGES.some(rx => rx.test(r.address)) ||
+        PRIVATE_V6.some(rx => rx.test(r.address))
+      );
     } catch {
-        return true; // fail closed
+      return true;
     }
-}
+  }
 
 app.post("/api/send", apiLimiter, async (req, res) => {
     try {
@@ -176,6 +183,12 @@ app.get(/^(?!\/api).*/, (req, res) => {
     res.sendFile(path.join(frontendPublicDir, "index.html")); // Serve SPA index for non-API routes.
 });
 
-app.listen(3000, () => console.log("Open http://localhost:3000")); // Start backend server on port 3000.
 
-// Security improvements
+const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST || "127.0.0.1";
+
+app.listen(PORT, HOST, () => {
+  console.log(`Server beží na http://${HOST}:${PORT}`);
+});
+
+
